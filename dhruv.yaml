@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dhruv-namespace
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dhruv-pvc-new
+  namespace: dhruv-namespace
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /Dhruv_PV_dir
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dhruv-pvc-new
+  namespace: dhruv-namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: dhruv-container1-pod
+  namespace: dhruv-namespace
+  labels:
+    app: dhruv-container1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dhruv-container1
+  template:
+    metadata:
+      labels:
+        app: dhruv-container1
+    spec:
+      containers:
+        - name: dhruv-container1-pod
+          image: us-central1-docker.pkg.dev/kubernetes-390002/kubernetes/container1
+          ports:
+            - containerPort: 6000
+          volumeMounts:
+            - name: kube-shared-volume
+              mountPath: /Dhruv_PV_dir
+        - name: dhruv-container2-pod
+          image: us-central1-docker.pkg.dev/kubernetes-390002/kubernetes/container2
+          ports:
+            - containerPort: 7000
+          volumeMounts:
+            - name: kube-shared-volume
+              mountPath: /Dhruv_PV_dir
+      volumes:
+        - name: kube-shared-volume
+          persistentVolumeClaim:
+            claimName: dhruv-pvc-new
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dhruv-container1-service
+  namespace: dhruv-namespace
+spec:
+  selector:
+    app: dhruv-container1
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 6000
+  type: LoadBalancer
